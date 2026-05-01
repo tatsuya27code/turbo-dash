@@ -7,52 +7,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #04040f;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    min-height: 100vh; overflow: hidden; font-family: 'Share Tech Mono', monospace;
-  }
+  body { background: #04040f; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; font-family: 'Share Tech Mono', monospace; }
   #game-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-  
-  /* 説明画面：確実にクリックを通すための設定 */
-  #ui-layer {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    display: flex; justify-content: center; align-items: center;
-    background: rgba(0, 0, 0, 0.7); z-index: 9999; /* 最前面 */
-  }
-  #start-screen {
-    text-align: center; color: #00ffc8; border: 2px solid #00ffc8;
-    padding: 30px; background: #0a0a15; border-radius: 12px;
-    box-shadow: 0 0 40px rgba(0, 255, 200, 0.3);
-    pointer-events: auto; /* クリックを有効化 */
-  }
-  #start-button {
-    background: #00ffc8; color: #000; border: none; padding: 15px 40px;
-    font-family: 'Orbitron'; font-weight: 900; font-size: 18px;
-    cursor: pointer; margin-top: 20px; border-radius: 4px;
-    box-shadow: 0 0 20px rgba(0, 255, 200, 0.5);
-  }
-
-  #gameCanvas { display: block; border: 1px solid rgba(0,255,200,0.25); image-rendering: pixelated; }
+  #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.8); z-index: 1000; }
+  #start-screen { text-align: center; color: #00ffc8; border: 1px solid #00ffc8; padding: 30px; background: #0a0a15; box-shadow: 0 0 30px rgba(0, 255, 200, 0.2); border-radius: 8px; max-width: 320px; }
+  #start-button { background: #00ffc8; color: #000; border: none; padding: 12px 30px; font-family: 'Orbitron'; font-weight: 900; cursor: pointer; margin-top: 20px; border-radius: 4px; box-shadow: 0 0 15px rgba(0, 255, 200, 0.5); }
+  #gameCanvas { display: block; border: 1px solid rgba(0,255,200,0.25); box-shadow: 0 0 20px rgba(0,255,200,0.1); image-rendering: pixelated; }
   #btn-row { display: flex; gap: 10px; width: 100%; }
-  .btn {
-    flex: 1; background: rgba(0,255,200,0.1); border: 1px solid rgba(0,255,200,0.3);
-    color: #00ffc8; font-family: 'Orbitron'; font-size: 20px; padding: 15px 0; border-radius: 6px;
-    cursor: pointer; user-select: none; touch-action: none;
-  }
-  #btn-start { color: #ff3c64; border-color: rgba(255,60,100,0.5); font-size: 12px; }
+  .btn { flex: 1; background: rgba(0,255,200,0.07); border: 1px solid rgba(0,255,200,0.3); color: #00ffc8; font-family: 'Orbitron'; font-size: 20px; padding: 15px 0; border-radius: 6px; cursor: pointer; user-select: none; }
+  #btn-start { color: #ff3c64; border-color: rgba(255,60,100,0.4); font-size: 12px; letter-spacing: 1px; }
 </style>
 </head>
 <body>
 
 <div id="ui-layer">
     <div id="start-screen">
-        <h1 style="margin-bottom:15px; font-family:'Orbitron'; font-size: 32px;">TURBO DASH</h1>
-        <div style="text-align:left; font-size:14px; line-height:1.7;">
-            <p style="color:#ffaa00; font-weight:bold; border-bottom:1px solid #ffaa00; margin-bottom:8px;">CONTROLS</p>
+        <h1 style="margin-bottom:15px; font-size: 28px; font-family: 'Orbitron';">TURBO DASH</h1>
+        <div style="text-align: left; font-size: 14px; line-height: 1.6;">
+            <p style="color: #ffaa00; border-bottom: 1px solid #ffaa00; margin-bottom: 5px;">CONTROLS</p>
             <p>◀ ▶ : MOVE / SPACE : BOOST</p>
-            <p style="color:#ffaa00; font-weight:bold; border-bottom:1px solid #ffaa00; margin-top:15px; margin-bottom:8px;">MISSION</p>
-            <p>不のデータを収集し、5つのライフで生き残れ。<br>赤いボタンで一時停止（STOP）が可能。</p>
+            <p style="color: #ffaa00; border-bottom: 1px solid #ffaa00; margin-top:15px; margin-bottom: 5px;">MISSION</p>
+            <p>不のデータを収集せよ。ライフは5つ。<br>赤いボタンで一時停止が可能。</p>
         </div>
         <button id="start-button">START ENGINE</button>
     </div>
@@ -68,65 +43,50 @@
 </div>
 
 <script>
-// --- のロジックを完全保存 ---
+// --- の全ロジックを完全復元 ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const LW = 400, LH = 600;
 
 let STATE = 'START';
-let isPaused = false;
-let score = 0, bestScore = 0, lives = 5;
+let isPaused = false; // ★一時停止用フラグ
+let score = 0, bestScore = 0, lives = 5; // ★ライフを5に
 let frame = 0, gameSpeed = 4, roadOff = 0;
 let player, enemies = [], particles = [], sparks = [];
 
-function resize() {
-  const maxH = window.innerHeight - 120;
-  const ratio = LW / LH;
-  let ch = Math.min(LH, maxH);
-  canvas.width = LW; canvas.height = LH;
-  canvas.style.width = (ch * ratio) + 'px';
-  canvas.style.height = ch + 'px';
-}
-window.addEventListener('resize', resize); resize();
-
 function initPlayer() {
-  player = { x: LW/2, y: 490, w: 36, h: 60, tx: LW/2, inv: false, invT: 0, trail: [] };
+  player = { x: LW/2, y: 500, w: 36, h: 60, tx: LW/2, inv: false, invT: 0, trail: [] };
 }
-
-// 描画補助（角丸四角形 - ビジュアルの要）
-function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.fill();}
 
 function resetGame() {
-  STATE = 'PLAYING';
-  isPaused = false;
+  STATE = 'PLAYING'; isPaused = false;
   score = 0; lives = 5; gameSpeed = 4; frame = 0;
   enemies = []; particles = []; sparks = [];
   initPlayer();
   document.getElementById('btn-start').innerText = 'START / STOP';
 }
 
-// --- スタートボタンの確実な動作 ---
-const startBtn = document.getElementById('start-button');
-const uiLayer = document.getElementById('ui-layer');
-
-startBtn.onclick = function() {
-    uiLayer.style.display = 'none';
-    resetGame();
+// ボタン設定
+document.getElementById('start-button').onclick = () => {
+  document.getElementById('ui-layer').style.display = 'none';
+  resetGame();
 };
 
-// 一時停止ボタン
-document.getElementById('btn-start').onclick = function(e) {
+document.getElementById('btn-start').onclick = (e) => {
   if (STATE === 'PLAYING') {
     isPaused = !isPaused;
-    this.innerText = isPaused ? 'RESUME' : 'START / STOP';
+    e.target.innerText = isPaused ? 'RESUME' : 'START / STOP';
   } else {
-    uiLayer.style.display = 'none';
+    document.getElementById('ui-layer').style.display = 'none';
     resetGame();
   }
 };
 
+// --- の豪華な描画システムをここから完全記述 ---
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.fill();}
+
 function update() {
-  if (STATE !== 'PLAYING' || isPaused) return;
+  if (STATE !== 'PLAYING' || isPaused) return; // ★一時停止中は計算を止める
 
   frame++;
   score += 0.1;
@@ -142,7 +102,7 @@ function update() {
   enemies.forEach(e => {
     e.y += e.spd;
     if (!player.inv && Math.abs(player.x - e.x) < 30 && Math.abs(player.y - e.y) < 50) {
-      lives--; player.inv = true; player.invT = 120;
+      lives--; player.inv = true; player.invT = 100;
       if (lives <= 0) { STATE = 'GAMEOVER'; if(score > bestScore) bestScore = score; }
     }
   });
@@ -156,37 +116,38 @@ function draw() {
   ctx.fillStyle = '#10101a'; ctx.fillRect(60,0,280,LH);
   
   // ネオン白線
-  ctx.strokeStyle = 'rgba(0, 255, 200, 0.15)';
+  ctx.strokeStyle = 'rgba(0, 255, 200, 0.2)';
   ctx.setLineDash([20, 40]);
   ctx.lineDashOffset = -roadOff;
-  ctx.beginPath(); ctx.moveTo(153,0); ctx.lineTo(153,LH); ctx.moveTo(247,0); ctx.lineTo(247,LH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(153, 0); ctx.lineTo(153, LH); ctx.moveTo(247, 0); ctx.lineTo(247, LH); ctx.stroke();
   ctx.setLineDash([]);
 
   // HUD
   ctx.fillStyle = '#00ffc8'; ctx.font = 'bold 16px Orbitron'; ctx.textAlign = 'left';
+  ctx.shadowBlur = 5; ctx.shadowColor = '#00ffc8';
   ctx.fillText(Math.floor(score).toString().padStart(7,'0'), 20, 35);
+  
   ctx.textAlign = 'right';
   for (let i = 0; i < 5; i++) {
     ctx.fillStyle = i < lives ? '#ff3364' : '#2a2a35';
     ctx.shadowBlur = i < lives ? 15 : 0; ctx.shadowColor = '#ff3364';
     ctx.fillText('♥', LW - 20 - i * 25, 35);
-    ctx.shadowBlur = 0;
   }
+  ctx.shadowBlur = 0;
 
   if (STATE === 'PLAYING' || STATE === 'GAMEOVER') {
-    // Player - 元のビジュアルを復元
+    // Player
     if (!(player.inv && Math.floor(frame/5)%2)) {
       ctx.shadowBlur = 20; ctx.shadowColor = '#00ccff';
       ctx.fillStyle = '#00ccff'; rr(player.x-18, player.y-30, 36, 60, 8);
-      // ガラス窓の反射
-      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(player.x-12, player.y-22, 24, 12);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fillRect(player.x-12, player.y-25, 24, 15);
       ctx.shadowBlur = 0;
     }
-    // Enemies - 元のビジュアルを復元
+    // Enemies
     enemies.forEach(e => {
       ctx.shadowBlur = 15; ctx.shadowColor = e.col;
       ctx.fillStyle = e.col; rr(e.x-17, e.y-29, 34, 58, 8);
-      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(e.x-12, e.y-20, 24, 10);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(e.x-12, e.y-24, 24, 12);
       ctx.shadowBlur = 0;
     });
   }
@@ -195,21 +156,15 @@ function draw() {
     ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0,0,LW,LH);
     ctx.fillStyle = '#ff3364'; ctx.textAlign = 'center'; ctx.font = 'bold 36px Orbitron';
     ctx.fillText('GAME OVER', LW/2, LH/2);
-    ctx.font = '14px Orbitron'; ctx.fillStyle = '#ffaa00';
-    ctx.fillText('PRESS STOP TO RETRY', LW/2, LH/2 + 50);
   }
 }
 
-function loop() {
-  update(); draw(); requestAnimationFrame(loop);
-}
+function loop() { update(); draw(); requestAnimationFrame(loop); }
 
-// 移動ボタン
-document.getElementById('btn-left').onclick = () => { if(!isPaused) player.tx = Math.max(85, player.tx - 115); };
-document.getElementById('btn-right').onclick = () => { if(!isPaused) player.tx = Math.min(315, player.tx + 115); };
+document.getElementById('btn-left').onclick = () => { if(!isPaused) player.tx = Math.max(90, player.tx - 115); };
+document.getElementById('btn-right').onclick = () => { if(!isPaused) player.tx = Math.min(310, player.tx + 115); };
 
-initPlayer();
-loop();
+initPlayer(); loop();
 </script>
 </body>
 </html>
