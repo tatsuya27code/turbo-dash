@@ -32,7 +32,7 @@
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
     display: flex; justify-content: center; align-items: center;
-    background: rgba(0, 0, 0, 0.6); /* 背景を少し透かす */
+    background: rgba(0, 0, 0, 0.7); 
     z-index: 100;
   }
 
@@ -44,6 +44,7 @@
     background: #0a0a15;
     box-shadow: 0 0 25px rgba(0, 255, 200, 0.4);
     border-radius: 12px;
+    max-width: 320px;
   }
 
   #start-button {
@@ -55,17 +56,14 @@
     font-weight: bold;
     font-size: 16px;
     cursor: pointer;
-    margin-top: 20px;
+    margin-top: 15px;
     border-radius: 4px;
   }
 
   #gameCanvas {
     display: block;
     border: 1px solid rgba(0,255,200,0.25);
-    box-shadow:
-      0 0 15px rgba(0,255,200,0.15),
-      0 0 50px rgba(0,255,200,0.06),
-      inset 0 0 30px rgba(0,0,0,0.5);
+    box-shadow: 0 0 15px rgba(0,255,200,0.15);
     image-rendering: pixelated;
   }
 
@@ -82,27 +80,17 @@
     color: #00ffc8;
     font-family: 'Orbitron', sans-serif;
     font-size: 20px;
-    font-weight: 700;
     padding: 14px 0;
     border-radius: 6px;
     cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: none;
     text-align: center;
-    transition: background 0.1s;
-    letter-spacing: 1px;
   }
-  .btn:active, .btn.held {
-    background: rgba(0,255,200,0.22);
-    box-shadow: 0 0 12px rgba(0,255,200,0.3);
-  }
+  
   #btn-start {
     background: rgba(255,60,100,0.1);
     border-color: rgba(255,60,100,0.4);
     color: #ff3c64;
     font-size: 13px;
-    letter-spacing: 2px;
   }
 </style>
 </head>
@@ -110,16 +98,13 @@
 
 <div id="ui-layer">
     <div id="start-screen">
-        <h1 style="margin-bottom:15px; font-size: 32px;">TURBO DASH</h1>
-        <div style="text-align: left; margin-bottom: 20px; line-height: 1.6;">
-            <p style="color: #ffaa00; font-weight: bold; border-bottom: 1px solid #ffaa00; margin-bottom: 8px;">【操作方法】</p>
-            <ul style="list-style: none; padding-left: 5px; margin-bottom: 15px;">
-                <li>◀ ▶ : 左右へ移動</li>
-                <li>SPACE : ターボ加速</li>
-            </ul>
-            <p style="color: #ffaa00; font-weight: bold; border-bottom: 1px solid #ffaa00; margin-bottom: 8px;">【ミッション】</p>
-            <p>敵車を避けてスコアを稼げ！<br>
-               赤いボタンで一時停止が可能。</p>
+        <h1 style="margin-bottom:10px;">TURBO DASH</h1>
+        <div style="text-align: left; font-size: 14px; line-height: 1.5;">
+            <p style="color: #ffaa00;">【操作】</p>
+            <p>◀ ▶ : 左右移動 / SPACE : 加速</p>
+            <p style="color: #ffaa00; margin-top:10px;">【ミッション】</p>
+            <p>敵を避けろ！ライフは5つ。<br>
+               下の赤いボタンで一時停止。</p>
         </div>
         <button id="start-button">START ENGINE</button>
     </div>
@@ -135,222 +120,129 @@
 </div>
 
 <script>
-// ─────────────────────────────────────────────
-//  GAME CONFIG & STATE
-// ─────────────────────────────────────────────
 const canvas = document.getElementById('gameCanvas');
-const ctx    = canvas.getContext('2d');
+const ctx = canvas.getContext('2d');
 const LW = 400; 
 const LH = 600; 
 
-let STATE     = 'START'; 
-let isPaused  = false;
-let score     = 0;
+let STATE = 'START'; 
+let isPaused = false;
+let score = 0;
 let bestScore = 0;
-let lives     = 5;
+let lives = 5;
 let gameSpeed = 4;
-let frame     = 0;
-let roadOff   = 0;
-let spawnTimer = 0;
-let spawnInt   = 180;
-let combo      = 0;
-let comboTimer = 0;
+let frame = 0;
+let enemies = [];
+let player;
 
-let player, enemies, particles, sparks;
-
-// ─────────────────────────────────────────────
-//  SETUP & RESIZE
-// ─────────────────────────────────────────────
 function resize() {
-  const maxH = window.innerHeight - 90;
-  const maxW = window.innerWidth  - 16;
+  const maxH = window.innerHeight - 100;
   const ratio = LW / LH;
   let ch = Math.min(LH, maxH);
-  let cw = ch * ratio;
-  if (cw > maxW) { cw = maxW; ch = cw / ratio; }
-  canvas.style.width  = cw + 'px';
-  canvas.style.height = ch + 'px';
-  canvas.width  = LW;
+  canvas.width = LW;
   canvas.height = LH;
+  canvas.style.width = (ch * ratio) + 'px';
+  canvas.style.height = ch + 'px';
 }
-resize();
 window.addEventListener('resize', resize);
-
-// ─────────────────────────────────────────────
-//  CORE FUNCTIONS
-// ─────────────────────────────────────────────
-const ROAD_L = 68, ROAD_R = 332, ROAD_W = ROAD_R - ROAD_L;
-const LANES = 3, LANE_W = ROAD_W / LANES;
-function laneX(l) { return ROAD_L + LANE_W * l + LANE_W / 2; }
-
-const ENEMY_COLORS = [
-  ['#ff2244','#ff6688'], ['#ff8800','#ffbb44'], ['#ddff00','#eeff88'],
-  ['#aa00ff','#cc66ff'], ['#ff00aa','#ff66cc'], ['#00ddff','#88eeff']
-];
+resize();
 
 function initPlayer() {
-  player = {
-    x: laneX(1), y: 490, w: 36, h: 60, lane: 1, tx: laneX(1),
-    invincible: false, invTimer: 0, trail: []
-  };
+  player = { x: LW/2, y: 500, w: 36, h: 60, tx: LW/2, inv: false, invT: 0 };
 }
 
 function resetGame() {
   STATE = 'PLAYING';
   isPaused = false;
-  score = 0; lives = 5; gameSpeed = 4; frame = 0;
-  spawnTimer = 0; spawnInt = 180; combo = 0;
-  enemies = []; particles = []; sparks = [];
+  score = 0;
+  lives = 5;
+  gameSpeed = 4;
+  enemies = [];
   initPlayer();
   document.getElementById('btn-start').innerText = 'START / STOP';
 }
 
-// ─────────────────────────────────────────────
-//  INPUT HANDLERS
-// ─────────────────────────────────────────────
-// UI START BUTTON
+// ボタン操作の修正
 document.getElementById('start-button').addEventListener('click', () => {
   document.getElementById('ui-layer').style.display = 'none';
   resetGame();
 });
 
-// BOTTOM START/STOP BUTTON
 document.getElementById('btn-start').addEventListener('click', (e) => {
   if (STATE === 'PLAYING') {
     isPaused = !isPaused;
     e.target.innerText = isPaused ? 'RESUME' : 'START / STOP';
   } else {
-    resetGame();
-  }
-});
-
-function tryMove(dir) {
-  if (isPaused) return;
-  const nl = player.lane + dir;
-  if (nl >= 0 && nl < LANES) { player.lane = nl; player.tx = laneX(nl); }
-}
-
-const keys = {};
-document.addEventListener('keydown', e => {
-  if (keys[e.key]) return;
-  keys[e.key] = true;
-  if (STATE === 'PLAYING' && !isPaused) {
-    if (e.key === 'ArrowLeft') tryMove(-1);
-    if (e.key === 'ArrowRight') tryMove(+1);
-  } else if (STATE !== 'PLAYING') {
-    resetGame();
     document.getElementById('ui-layer').style.display = 'none';
+    resetGame();
   }
 });
-document.addEventListener('keyup', e => { keys[e.key] = false; });
 
-function bindBtn(id, dir) {
-  const el = document.getElementById(id);
-  const trigger = e => { e.preventDefault(); tryMove(dir); el.classList.add('held'); };
-  const release = e => { e.preventDefault(); el.classList.remove('held'); };
-  el.addEventListener('touchstart', trigger, {passive:false});
-  el.addEventListener('touchend', release, {passive:false});
-  el.addEventListener('mousedown', trigger);
-  el.addEventListener('mouseup', release);
+function move(dir) {
+  if (STATE !== 'PLAYING' || isPaused) return;
+  player.tx = Math.max(80, Math.min(320, player.tx + dir * 85));
 }
-bindBtn('btn-left', -1);
-bindBtn('btn-right', 1);
+document.getElementById('btn-left').onclick = () => move(-1);
+document.getElementById('btn-right').onclick = () => move(1);
 
-// ─────────────────────────────────────────────
-//  UPDATE LOGIC
-// ─────────────────────────────────────────────
 function update() {
   if (STATE !== 'PLAYING' || isPaused) return;
 
   frame++;
-  score += gameSpeed * 0.07;
-  gameSpeed = Math.min(14, 4 + frame / 480);
-  spawnInt = Math.max(75, 180 - frame / 36);
-  roadOff = (roadOff + gameSpeed) % 70;
+  score += 0.1;
+  player.x += (player.tx - player.x) * 0.2;
 
-  player.x += (player.tx - player.x) * 0.16;
-  player.trail.unshift({ x: player.x, y: player.y });
-  if (player.trail.length > 12) player.trail.pop();
-
-  if (player.invincible) {
-    player.invTimer--;
-    if (player.invTimer <= 0) player.invincible = false;
+  if (frame % 100 === 0) {
+    enemies.push({ x: 85 + Math.floor(Math.random()*3)*85, y: -100, speed: gameSpeed + Math.random()*2 });
   }
 
-  spawnTimer++;
-  if (spawnTimer >= spawnInt) {
-    const lane = Math.floor(Math.random() * LANES);
-    const col = ENEMY_COLORS[Math.floor(Math.random() * ENEMY_COLORS.length)];
-    enemies.push({ x: laneX(lane), y: -80, w: 34, h: 58, color: col[0], shine: col[1], spd: 0.7 + Math.random() * 0.5, passed: false });
-    spawnTimer = 0;
-  }
-
-  for (const e of enemies) {
-    e.y += e.spd + gameSpeed * 0.72;
-    if (!player.invincible && Math.abs(player.x - e.x) < 25 && Math.abs(player.y - e.y) < 50) {
+  enemies.forEach((e, i) => {
+    e.y += e.speed;
+    if (!player.inv && Math.abs(player.x - e.x) < 30 && Math.abs(player.y - e.y) < 50) {
       lives--;
-      player.invincible = true; player.invTimer = 140;
-      if (lives <= 0) { STATE = 'GAMEOVER'; if (score > bestScore) bestScore = score; }
+      player.inv = true; player.invT = 100;
+      if (lives <= 0) STATE = 'GAMEOVER';
     }
-  }
-  enemies = enemies.filter(e => e.y < LH + 100);
-}
-
-// ─────────────────────────────────────────────
-//  DRAWING
-// ─────────────────────────────────────────────
-function rr(x,y,w,h,r) {
-  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
-  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
-  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.fill();
+  });
+  if (player.inv) { player.invT--; if (player.invT <= 0) player.inv = false; }
+  enemies = enemies.filter(e => e.y < LH);
 }
 
 function draw() {
   ctx.fillStyle = '#06060f';
-  ctx.fillRect(0,0,LW,LH);
+  ctx.fillRect(0, 0, LW, LH);
   
-  // Road
+  // 道
   ctx.fillStyle = '#141420';
-  ctx.fillRect(ROAD_L, 0, ROAD_W, LH);
-  
+  ctx.fillRect(70, 0, 260, LH);
+
   // HUD
-  ctx.fillStyle = 'rgba(0,0,12,0.8)';
-  ctx.fillRect(0,0,LW,42);
   ctx.fillStyle = '#00ffc8';
-  ctx.font = 'bold 16px Orbitron';
+  ctx.font = '18px Orbitron';
   ctx.textAlign = 'left';
-  ctx.fillText(Math.floor(score).toString().padStart(7,'0'), 10, 28);
+  ctx.fillText('SCORE: ' + Math.floor(score), 15, 30);
   
-  // Lives (Heart icons)
+  // ライフ表示（右上に並べる）
   ctx.textAlign = 'right';
   for (let i = 0; i < 5; i++) {
     ctx.fillStyle = i < lives ? '#ff3364' : '#333344';
-    ctx.fillText('♥', LW - 20 - i * 25, 28);
+    ctx.fillText('♥', LW - 20 - i * 25, 30);
   }
 
-  if (STATE === 'START') return;
-
-  // Player
-  if (!(player.invincible && Math.floor(frame/5)%2)) {
-    ctx.fillStyle = '#00ccff';
-    rr(player.x-18, player.y-30, 36, 60, 8);
-  }
-
-  // Enemies
-  for (const e of enemies) {
-    ctx.fillStyle = e.color;
-    rr(e.x-17, e.y-29, 34, 58, 8);
-  }
-
-  if (STATE === 'GAMEOVER') {
-    ctx.fillStyle = 'rgba(0,0,0,0.8)';
-    ctx.fillRect(0,0,LW,LH);
-    ctx.fillStyle = '#ff3364';
+  if (STATE === 'PLAYING') {
+    if (!(player.inv && Math.floor(frame/5)%2)) {
+      ctx.fillStyle = '#00ccff';
+      ctx.fillRect(player.x-18, player.y-30, 36, 60);
+    }
+    enemies.forEach(e => {
+      ctx.fillStyle = '#ff8800';
+      ctx.fillRect(e.x-17, e.y-29, 34, 58);
+    });
+  } else if (STATE === 'GAMEOVER') {
+    ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
-    ctx.font = 'bold 40px Orbitron';
     ctx.fillText('GAME OVER', LW/2, LH/2);
-    ctx.font = '16px Orbitron';
-    ctx.fillText('PRESS START TO RETRY', LW/2, LH/2 + 50);
+    ctx.fillText('PRESS START TO RETRY', LW/2, LH/2 + 40);
   }
 }
 
@@ -358,11 +250,3 @@ function loop() {
   update();
   draw();
   requestAnimationFrame(loop);
-}
-
-initPlayer();
-enemies = [];
-loop();
-</script>
-</body>
-</html>
