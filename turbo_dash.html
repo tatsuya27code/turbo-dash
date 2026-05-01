@@ -3,39 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>TURBO DASH</title>
+<title>TURBO DASH - PRO Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-  /* のCSSを100%継承 */
+  /* 全体のスタイルは2019.pngの雰囲気を重視 */
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #04040f; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; font-family: 'Share Tech Mono', monospace; }
   #game-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-  #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.8); z-index: 10; }
-  #start-screen { text-align: center; color: #00ffc8; border: 2px solid #00ffc8; padding: 20px; background: #0a0a0f; box-shadow: 0 0 20px #00ffc8; }
-  #start-button { background: #00ffc8; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; margin-top: 20px; }
-  #gameCanvas { display: block; border: 1px solid rgba(0,255,200,0.25); box-shadow: 0 0 15px rgba(0,255,200,0.15), 0 0 50px rgba(0,255,200,0.06), inset 0 0 30px rgba(0,0,0,0.5); image-rendering: pixelated; }
+  #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.85); z-index: 10; }
+  #start-screen { text-align: center; color: #00ffc8; border: 2px solid #00ffc8; padding: 30px; background: #0a0a15; box-shadow: 0 0 30px #00ffc8; border-radius: 8px; }
+  #start-button { background: #00ffc8; color: #000; border: none; padding: 12px 30px; font-weight: bold; cursor: pointer; margin-top: 25px; font-family: 'Orbitron'; font-size: 1.2rem; }
+  #gameCanvas { display: block; border: 1px solid rgba(0,255,200,0.3); box-shadow: 0 0 20px rgba(0,255,200,0.2); image-rendering: auto; }
   #btn-row { display: flex; gap: 10px; width: 100%; }
-  .btn { flex: 1; background: rgba(0,255,200,0.07); border: 1px solid rgba(0,255,200,0.3); color: #00ffc8; font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 700; padding: 14px 0; border-radius: 6px; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: none; text-align: center; transition: background 0.1s; letter-spacing: 1px; }
-  .btn:active, .btn.held { background: rgba(0,255,200,0.22); box-shadow: 0 0 12px rgba(0,255,200,0.3); }
-  #btn-start { background: rgba(255,60,100,0.1); border-color: rgba(255,60,100,0.4); color: #ff3c64; font-size: 13px; letter-spacing: 2px; }
-  #btn-start:active { background: rgba(255,60,100,0.25); }
+  .btn { flex: 1; background: rgba(0,255,200,0.07); border: 1px solid rgba(0,255,200,0.3); color: #00ffc8; font-family: 'Orbitron', sans-serif; font-size: 20px; padding: 16px 0; border-radius: 8px; cursor: pointer; touch-action: none; text-align: center; }
+  .btn:active { background: rgba(0,255,200,0.25); }
+  #btn-start { background: rgba(255,60,100,0.1); border-color: rgba(255,60,100,0.4); color: #ff3c64; font-size: 14px; }
 </style>
 </head>
 <body>
 
- <div id="ui-layer">
+<div id="ui-layer">
     <div id="start-screen">
-        <h1>TURBO DASH</h1>
-        <div class="instructions">
-            <p>【操作方法】</p>
-            <ul>
-                <li>← → : 左右移動</li>
-                <li>SPACE : ターボ (回数制限)</li>
-            </ul>
-            <p>【ミッション】</p>
-            <p>不のデータを収集せよ。ライフは5つ。<br>赤いボタンで一時停止が可能です。</p>
+        <h1 style="font-family:'Orbitron'; font-size: 2.5rem; margin-bottom: 15px;">TURBO DASH</h1>
+        <div style="text-align: left; line-height: 1.6;">
+            <p>【操作】← → : 車線変更</p>
+            <p>【任務】現場の「不のデータ」を収集せよ。</p>
+            <p>【仕様】ライフ 5 / 一時停止可能</p>
         </div>
-        <button id="start-button">START ENGINE</button>
+        <button id="start-button">GO FIELD</button>
     </div>
 </div>
 
@@ -49,15 +44,12 @@
 </div>
 
 <script>
-// ─────────────────────────────────────────────
-//  CANVAS & GAME SETUP (保持)
-// ─────────────────────────────────────────────
 const canvas = document.getElementById('gameCanvas');
-const ctx    = canvas.getContext('2d');
+const ctx = canvas.getContext('2d');
 const LW = 400; const LH = 600;
 
 function resize() {
-  const maxH = window.innerHeight - 90; const maxW = window.innerWidth - 16; const ratio = LW / LH;
+  const maxH = window.innerHeight - 100; const maxW = window.innerWidth - 20; const ratio = LW / LH;
   let ch = Math.min(LH, maxH); let cw = ch * ratio;
   if (cw > maxW) { cw = maxW; ch = cw / ratio; }
   canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px'; canvas.width = LW; canvas.height = LH;
@@ -66,116 +58,155 @@ resize(); window.addEventListener('resize', resize);
 
 const ROAD_L = 68; const ROAD_R = 332; const ROAD_W = ROAD_R - ROAD_L; const LANES = 3; const LANE_W = ROAD_W / LANES;
 function laneX(l) { return ROAD_L + LANE_W * l + LANE_W / 2; }
-const ENEMY_COLORS = [['#ff2244','#ff6688'],['#ff8800','#ffbb44'],['#ddff00','#eeff88'],['#aa00ff','#cc66ff'],['#ff00aa','#ff66cc'],['#00ddff','#88eeff']];
 
 let STATE = 'START';
-let isPaused = false; // ★追加
-let score = 0; let bestScore = 0; let lives = 5; // ★ライフ5に変更
-let gameSpeed = 4; let frame = 0; let roadOff = 0; let spawnTimer = 0; let spawnInt = 180; let combo = 0; let comboTimer = 0;
+let isPaused = false;
+let score = 0; let bestScore = 0; let lives = 5;
+let gameSpeed = 4; let frame = 0; let roadOff = 0;
 let player, enemies, particles, sparks;
+
+const ENEMY_COLORS = [['#ff2244','#ff6688'], ['#ff8800','#ffbb44'], ['#aa00ff','#cc66ff'], ['#00ddff','#88eeff']];
 
 function initPlayer() {
   player = { x: laneX(1), y: 490, w: 36, h: 60, lane: 1, tx: laneX(1), invincible: false, invTimer: 0, trail: [] };
 }
 
 function resetGame() {
-  STATE = 'PLAYING'; isPaused = false; // ★追加
-  score = 0; lives = 5; gameSpeed = 4; frame = 0; roadOff = 0; spawnTimer = 0; spawnInt = 180; combo = 0; comboTimer = 0;
+  STATE = 'PLAYING'; isPaused = false;
+  score = 0; lives = 5; gameSpeed = 4; frame = 0;
   enemies = []; particles = []; sparks = [];
   initPlayer();
   document.getElementById('btn-start').innerText = 'START / STOP';
 }
 
-// ─────────────────────────────────────────────
-//  INPUT (保持)
-// ─────────────────────────────────────────────
-const keys = {};
-let leftHeld = false, rightHeld = false, moveCd = 0;
-
+// ボタン制御
 document.getElementById('start-button').addEventListener('click', () => {
     document.getElementById('ui-layer').style.display = 'none';
     resetGame();
 });
 
+document.getElementById('btn-start').addEventListener('click', () => {
+    if (STATE === 'PLAYING') {
+        isPaused = !isPaused;
+        document.getElementById('btn-start').innerText = isPaused ? 'RESUME' : 'START / STOP';
+    } else {
+        document.getElementById('ui-layer').style.display = 'none';
+        resetGame();
+    }
+});
+
 function tryMove(dir) {
+  if (isPaused) return;
   const nl = player.lane + dir;
   if (nl >= 0 && nl < LANES) { player.lane = nl; player.tx = laneX(nl); }
 }
 
-function bindBtn(id, onDown, onUp) {
-  const el = document.getElementById(id);
-  const down = e => { e.preventDefault(); onDown(); el.classList.add('held'); };
-  const up   = e => { e.preventDefault(); if(onUp) onUp(); el.classList.remove('held'); };
-  el.addEventListener('touchstart', down, {passive:false});
-  el.addEventListener('touchend', up, {passive:false});
-  el.addEventListener('mousedown', down);
-  el.addEventListener('mouseup', up);
+document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); tryMove(-1); });
+document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); tryMove(1); });
+
+// 描画補助: 角丸長方形
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
+
+function drawRoad() {
+  ctx.fillStyle = '#06060f'; ctx.fillRect(0, 0, LW, LH);
+  const roadGrad = ctx.createLinearGradient(ROAD_L, 0, ROAD_R, 0);
+  roadGrad.addColorStop(0, '#101018'); roadGrad.addColorStop(0.5, '#141420'); roadGrad.addColorStop(1, '#101018');
+  ctx.fillStyle = roadGrad; ctx.fillRect(ROAD_L, 0, ROAD_W, LH);
+
+  // 路肩のゼブラ
+  for (let y = -60; y < LH + 60; y += 24) {
+    const ty = y + (roadOff * 1.2) % 48;
+    ctx.fillStyle = Math.floor(ty / 24) % 2 === 0 ? '#cc2200' : '#ffffff';
+    ctx.fillRect(ROAD_L - 8, ty, 8, 24); ctx.fillRect(ROAD_R, ty, 8, 24);
+  }
+
+  // センターライン
+  ctx.setLineDash([40, 30]); ctx.lineDashOffset = -roadOff;
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 2;
+  for (let l = 1; l < LANES; l++) {
+    const lx = ROAD_L + LANE_W * l;
+    ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, LH); ctx.stroke();
+  }
+  ctx.setLineDash([]);
 }
 
-bindBtn('btn-left', () => { if(!isPaused) { leftHeld = true; tryMove(-1); moveCd = 22; } }, () => { leftHeld = false; });
-bindBtn('btn-right', () => { if(!isPaused) { rightHeld = true; tryMove(+1); moveCd = 22; } }, () => { rightHeld = false; });
+function drawPlayer() {
+  if (player.invincible && Math.floor(frame/5) % 2 === 1) return;
+  ctx.save(); ctx.translate(player.x, player.y);
+  // シャドウ・グロー
+  ctx.shadowColor = '#00ccff'; ctx.shadowBlur = 15;
+  const bodyG = ctx.createLinearGradient(-18, 0, 18, 0);
+  bodyG.addColorStop(0, '#0066cc'); bodyG.addColorStop(0.5, '#00aaff'); bodyG.addColorStop(1, '#0066cc');
+  ctx.fillStyle = bodyG; rr(-18, -30, 36, 60, 8); ctx.fill();
+  // ウィンドウ
+  ctx.fillStyle = 'rgba(0,220,255,0.6)'; rr(-13, -22, 26, 15, 3); ctx.fill();
+  // ライト
+  ctx.fillStyle = '#ffffcc'; ctx.shadowBlur = 10; ctx.fillRect(-14, -30, 8, 4); ctx.fillRect(6, -30, 8, 4);
+  ctx.restore();
+}
 
-// START/STOP ボタンに一時停止機能を統合
-document.getElementById('btn-start').addEventListener('click', () => {
-  if (STATE === 'PLAYING') {
-    isPaused = !isPaused;
-    document.getElementById('btn-start').innerText = isPaused ? 'RESUME' : 'START / STOP';
-  } else {
-    document.getElementById('ui-layer').style.display = 'none';
-    resetGame();
+function drawEnemy(e) {
+  ctx.save(); ctx.translate(e.x, e.y);
+  ctx.fillStyle = e.color; rr(-17, -29, 34, 58, 8); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)'; rr(-12, 10, 24, 12, 3); ctx.fill(); // ガラス
+  ctx.fillStyle = '#ff2200'; ctx.fillRect(-13, -29, 8, 4); ctx.fillRect(5, -29, 8, 4); // テールランプ
+  ctx.restore();
+}
+
+function drawHUD() {
+  ctx.fillStyle = 'rgba(0,255,200,1)'; ctx.font = 'bold 16px Orbitron'; ctx.textAlign = 'left';
+  ctx.fillText(`SCORE: ${Math.floor(score)}`, 15, 30);
+  ctx.textAlign = 'right';
+  for(let i=0; i<5; i++) {
+    ctx.fillStyle = i < lives ? '#ff3364' : '#222233';
+    ctx.fillText('♥', LW - 15 - (i*25), 30);
   }
-});
+}
 
-// ─────────────────────────────────────────────
-//  DECOR & LOGIC (保持)
-// ─────────────────────────────────────────────
-const sideDecor = [];
-for (let i = 0; i < 10; i++) { sideDecor.push({ side: 0, y: i * 90 - 40, phase: i * 0.4 }); sideDecor.push({ side: 1, y: i * 90 - 40, phase: i * 0.4 + 0.2 }); }
-const sideDots = Array.from({length:60}, () => ({ x: Math.random() < 0.5 ? ROAD_L - 4 - Math.random() * (ROAD_L - 4) : ROAD_R + 4 + Math.random() * (LW - ROAD_R - 4), y: Math.random() * LH, r: Math.random() * 1.5 + 0.5, spd: Math.random() * 0.4 + 0.2 }));
-
-function explode(x, y) { for (let i = 0; i < 30; i++) { const a = Math.random() * Math.PI * 2, s = 2 + Math.random() * 7; particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, size: 3 + Math.random() * 5, hue: 10 + Math.random() * 40 }); } }
-function addSparks(x, y) { for (let i = 0; i < 12; i++) { const a = Math.PI/2 + (Math.random()-0.5) * Math.PI; sparks.push({ x, y, vx: Math.cos(a) * (1+Math.random()*3), vy: Math.sin(a) * (1+Math.random()*3), life: 1 }); } }
-function hits(a, b) { return (Math.abs(a.x - b.x) < (a.w + b.w)/2 - 7 && Math.abs(a.y - b.y) < (a.h + b.h)/2 - 7); }
-
-// ─────────────────────────────────────────────
-//  UPDATE (保持 + 一時停止追加)
-// ─────────────────────────────────────────────
 function update() {
-  if (STATE !== 'PLAYING' || isPaused) return; // ★一時停止対応
+  if (STATE !== 'PLAYING' || isPaused) return;
+  frame++; score += gameSpeed * 0.05;
+  gameSpeed = Math.min(15, 4 + frame/500);
+  roadOff = (roadOff + gameSpeed) % 1000;
 
-  frame++; score += gameSpeed * 0.07; gameSpeed = Math.min(14, 4 + frame / 480); spawnInt = Math.max(75, 180 - frame / 36);
-  roadOff = (roadOff + gameSpeed) % 70;
-
-  for (const d of sideDecor) { d.y += gameSpeed * 0.9; if (d.y > LH + 40) d.y -= 900; }
-  for (const d of sideDots) { d.y += d.spd + gameSpeed * 0.15; if (d.y > LH) d.y = 0; }
-
-  moveCd--; if (moveCd <= 0) { if (leftHeld) { tryMove(-1); moveCd = 20; } if (rightHeld) { tryMove(+1); moveCd = 20; } }
-  player.x += (player.tx - player.x) * 0.16;
-  player.trail.unshift({ x: player.x, y: player.y }); if (player.trail.length > 12) player.trail.pop();
-
+  player.x += (player.tx - player.x) * 0.15;
   if (player.invincible) { player.invTimer--; if (player.invTimer <= 0) player.invincible = false; }
-  if (comboTimer > 0) comboTimer--; else combo = 0;
 
-  spawnTimer++;
-  if (spawnTimer >= spawnInt) {
-    let lane = Math.floor(Math.random() * LANES);
+  if (frame % Math.floor(180/gameSpeed*5) === 0) {
+    const lane = Math.floor(Math.random() * LANES);
     const col = ENEMY_COLORS[Math.floor(Math.random() * ENEMY_COLORS.length)];
-    enemies.push({ x: laneX(lane), y: -80, w: 34, h: 58, lane, color: col[0], shine: col[1], spd: 0.7 + Math.random() * 0.5, passed: false });
-    spawnTimer = 0;
+    enemies.push({ x: laneX(lane), y: -100, color: col[0] });
   }
 
   for (const e of enemies) {
-    e.y += e.spd + gameSpeed * 0.72;
-    if (!e.passed && e.y > player.y + player.h) { e.passed = true; combo++; comboTimer = 180; }
-    if (!player.invincible && hits(player, e)) {
-      lives--; combo = 0; explode(player.x, player.y); addSparks(player.x, player.y - 20);
-      player.invincible = true; player.invTimer = 140;
-      if (lives <= 0) { STATE = 'GAMEOVER'; if (score > bestScore) bestScore = score; }
+    e.y += gameSpeed * 0.8;
+    if (!player.invincible && Math.abs(e.x - player.x) < 30 && Math.abs(e.y - player.y) < 50) {
+        lives--; player.invincible = true; player.invTimer = 100;
+        if (lives <= 0) STATE = 'GAMEOVER';
     }
   }
   enemies = enemies.filter(e => e.y < LH + 100);
+}
 
-  for (const p of particles) { p.x += p.vx; p.y += p.vy; p.vx *= 0.93; p.vy *= 0.93; p.vy += 0.15; p.life -= 0.022; }
-  particles = particles.filter(p => p.life > 0);
-  for (const s of sparks) { s.x += s.vx; s.y += s.vy; s.vx *= 0.88; s.life -= 0.035; }
-  sparks = sparks.filter
+function loop() {
+  update();
+  drawRoad();
+  if (STATE === 'START') { /* タイトルはUIレイヤーで表示 */ }
+  else {
+    for (const e of enemies) drawEnemy(e);
+    drawPlayer();
+    drawHUD();
+    if (STATE === 'GAMEOVER') {
+        ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(0,0,LW,LH);
+        ctx.fillStyle = '#ff3364'; ctx.font = 'bold 40px Orbitron'; ctx.textAlign = 'center';
+        ctx.fillText('GAME OVER', LW/2, LH/2);
+        ctx.font = '16px Share Tech Mono'; ctx.fillText('TAP START TO RETRY', LW/2, LH/2 + 50);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+initPlayer(); enemies = []; loop();
+</script>
+</body>
+</html>
