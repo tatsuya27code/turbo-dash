@@ -137,7 +137,9 @@
 // ─────────────────────────────────────────────
 //  CANVAS SETUP
 // ─────────────────────────────────────────────
-// STARTボタンを押した時の処理
+let gameState = 'TITLE'; // 最初はタイトル画面（説明画面）から始まる
+
+ // STARTボタンを押した時の処理
 document.getElementById('start-button').addEventListener('click', () => {
     // 説明画面を非表示にする
     document.getElementById('ui-layer').style.display = 'none';
