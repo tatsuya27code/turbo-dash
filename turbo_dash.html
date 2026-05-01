@@ -14,11 +14,10 @@
   }
   #game-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; }
   
-  /* 初期画面：ここが確実にボタンを押せるように修正しました */
   #ui-layer {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     display: flex; justify-content: center; align-items: center;
-    background: rgba(0, 0, 0, 0.7); z-index: 1000; /* 重なり順を最前面に */
+    background: rgba(0, 0, 0, 0.7); z-index: 1000;
   }
   #start-screen {
     text-align: center; color: #00ffc8; border: 1px solid #00ffc8;
@@ -63,14 +62,16 @@
 </div>
 
 <script>
+// --- のリッチな描画エンジンをベースに再構築 ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const LW = 400, LH = 600;
 
 let STATE = 'START';
 let isPaused = false;
-let score = 0, lives = 5, frame = 0, roadOff = 0;
-let player, enemies = [];
+let score = 0, bestScore = 0, lives = 5;
+let frame = 0, gameSpeed = 4, roadOff = 0;
+let player, enemies = [], particles = [], sparks = [];
 
 function resize() {
   const maxH = window.innerHeight - 110;
@@ -83,17 +84,18 @@ function resize() {
 window.addEventListener('resize', resize); resize();
 
 function initPlayer() {
-  player = { x: LW/2, y: 500, tx: LW/2, inv: false, invT: 0 };
+  player = { x: LW/2, y: 500, w: 36, h: 60, tx: LW/2, inv: false, invT: 0, trail: [] };
 }
 
 function resetGame() {
   STATE = 'PLAYING'; isPaused = false;
-  score = 0; lives = 5; frame = 0; enemies = [];
+  score = 0; lives = 5; gameSpeed = 4; frame = 0;
+  enemies = []; particles = []; sparks = [];
   initPlayer();
   document.getElementById('btn-start').innerText = 'START / STOP';
 }
 
-// --- ボタンのイベントリスナー（ここを確実に修正しました） ---
+// ボタン制御
 document.getElementById('start-button').onclick = () => {
   document.getElementById('ui-layer').style.display = 'none';
   resetGame();
@@ -103,18 +105,26 @@ document.getElementById('btn-start').onclick = (e) => {
   if (STATE === 'PLAYING') {
     isPaused = !isPaused;
     e.target.innerText = isPaused ? 'RESUME' : 'START / STOP';
-  } else if (STATE === 'GAMEOVER' || STATE === 'START') {
+  } else {
     document.getElementById('ui-layer').style.display = 'none';
     resetGame();
   }
-};
+}
 
 function update() {
   if (STATE !== 'PLAYING' || isPaused) return;
-  frame++; score += 0.1;
-  roadOff = (roadOff + 5) % 60;
+
+  frame++;
+  score += 0.1;
+  gameSpeed = Math.min(12, 4 + frame / 500);
+  roadOff = (roadOff + gameSpeed) % 60;
+  
   player.x += (player.tx - player.x) * 0.15;
-  if (frame % 100 === 0) enemies.push({ x: 85 + Math.floor(Math.random()*3)*115, y: -100, spd: 5 });
+  
+  if (frame % 80 === 0) {
+    enemies.push({ x: 85 + Math.floor(Math.random()*3)*115, y: -100, spd: gameSpeed + 1, col: '#ff8800' });
+  }
+
   enemies.forEach(e => {
     e.y += e.spd;
     if (!player.inv && Math.abs(player.x - e.x) < 30 && Math.abs(player.y - e.y) < 50) {
@@ -126,32 +136,58 @@ function update() {
   enemies = enemies.filter(e => e.y < LH + 100);
 }
 
-function draw() {
-  // 背景と道路
-  ctx.fillStyle = '#0a0a18'; ctx.fillRect(0,0,LW,LH);
-  ctx.fillStyle = '#141425'; ctx.fillRect(60,0,280,LH);
+// --- リッチな描画系 ---
+function drawRoad() {
+  ctx.fillStyle = '#060610'; ctx.fillRect(0,0,LW,LH);
+  ctx.fillStyle = '#10101a'; ctx.fillRect(60,0,280,LH);
   
-  // HUD (Score & Lives)
-  ctx.fillStyle = '#00ffc8'; ctx.font = '16px Orbitron'; ctx.textAlign = 'left';
-  ctx.fillText('SCORE: ' + Math.floor(score), 20, 35);
+  ctx.strokeStyle = 'rgba(0, 255, 200, 0.15)';
+  ctx.setLineDash([20, 40]);
+  ctx.lineDashOffset = -roadOff;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(153, 0); ctx.lineTo(153, LH);
+  ctx.moveTo(247, 0); ctx.lineTo(247, LH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function draw() {
+  drawRoad();
+
+  // HUD
+  ctx.fillStyle = '#00ffc8'; ctx.font = 'bold 16px Orbitron'; ctx.textAlign = 'left';
+  ctx.fillText(Math.floor(score).toString().padStart(7,'0'), 20, 35);
+  
   ctx.textAlign = 'right';
   for (let i = 0; i < 5; i++) {
     ctx.fillStyle = i < lives ? '#ff3364' : '#2a2a35';
+    ctx.shadowBlur = i < lives ? 10 : 0;
+    ctx.shadowColor = '#ff3364';
     ctx.fillText('♥', LW - 20 - i * 25, 35);
+    ctx.shadowBlur = 0;
   }
 
   if (STATE === 'PLAYING' || STATE === 'GAMEOVER') {
+    // Player
     if (!(player.inv && Math.floor(frame/5)%2)) {
-      ctx.fillStyle = '#00ccff'; ctx.fillRect(player.x-18, player.y-30, 36, 60);
+      ctx.shadowBlur = 15; ctx.shadowColor = '#00ccff';
+      ctx.fillStyle = '#00ccff';
+      ctx.fillRect(player.x-18, player.y-30, 36, 60);
+      ctx.shadowBlur = 0;
     }
+    // Enemies
     enemies.forEach(e => {
-      ctx.fillStyle = '#ff8800'; ctx.fillRect(e.x-17, e.y-29, 34, 58);
+      ctx.shadowBlur = 15; ctx.shadowColor = e.col;
+      ctx.fillStyle = e.col;
+      ctx.fillRect(e.x-17, e.y-29, 34, 58);
+      ctx.shadowBlur = 0;
     });
   }
 
   if (STATE === 'GAMEOVER') {
-    ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(0,0,LW,LH);
-    ctx.fillStyle = '#ff3364'; ctx.textAlign = 'center'; ctx.font = 'bold 30px Orbitron';
+    ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0,0,LW,LH);
+    ctx.fillStyle = '#ff3364'; ctx.textAlign = 'center'; ctx.font = 'bold 35px Orbitron';
     ctx.fillText('GAME OVER', LW/2, LH/2);
   }
 }
