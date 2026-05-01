@@ -879,9 +879,20 @@ function draw() {
 }
 
 function loop() {
+// ★ ここを追加：一時停止中なら、計算（update）を飛ばして描画（draw）だけ繰り返す
+  if (isPaused) {
+    draw(); // 画面は出したままにする
+    requestAnimationFrame(loop);
+    return;
+  }
+ 
   update();
   draw();
   requestAnimationFrame(loop);
+
+
+
+ 
 }
 
 // Init
