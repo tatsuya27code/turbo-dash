@@ -137,7 +137,20 @@
 // ─────────────────────────────────────────────
 //  CANVAS SETUP
 // ─────────────────────────────────────────────
-const canvas = document.getElementById('gameCanvas');
+// STARTボタンを押した時の処理
+document.getElementById('start-button').addEventListener('click', () => {
+    // 説明画面を非表示にする
+    document.getElementById('ui-layer').style.display = 'none';
+    
+    // ゲームの状態を「プレイ中」にする
+    gameState = 'PLAYING';
+    
+    // もしゲームを初期化する関数があればここで呼びます
+    // resetGame(); 
+});
+
+ 
+ const canvas = document.getElementById('gameCanvas');
 const ctx    = canvas.getContext('2d');
 
 const LW = 400;   // logical width
