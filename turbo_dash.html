@@ -27,6 +27,34 @@
     gap: 10px;
   }
 
+#ui-layer {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; justify-content: center; align-items: center;
+    background: rgba(0, 0, 0, 0.8); /* 背景を暗く透かす */
+    z-index: 10;
+}
+
+#start-screen {
+    text-align: center;
+    color: #00ffc8;
+    border: 2px solid #00ffc8;
+    padding: 20px;
+    background: #0a0a0f;
+    box-shadow: 0 0 20px #00ffc8;
+}
+
+#start-button {
+    background: #00ffc8;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+ 
   #gameCanvas {
     display: block;
     border: 1px solid rgba(0,255,200,0.25);
@@ -78,6 +106,23 @@
 </style>
 </head>
 <body>
+
+
+ <div id="ui-layer">
+    <div id="start-screen">
+        <h1>TURBO DASH</h1>
+        <div class="instructions">
+            <p>【操作方法】</p>
+            <ul>
+                <li>← → : 左右移動</li>
+                <li>SPACE : ターボ (回数制限)</li>
+            </ul>
+            <p>【ミッション】</p>
+            <p>敵車を避けてコインを稼ぎ、<br>ステージクリアを目指せ！</p>
+        </div>
+        <button id="start-button">START ENGINE</button>
+    </div>
+</div>
 
 <div id="game-wrapper">
   <canvas id="gameCanvas"></canvas>
