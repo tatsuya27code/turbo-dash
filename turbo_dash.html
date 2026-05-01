@@ -139,6 +139,23 @@
 // ─────────────────────────────────────────────
 let gameState = 'TITLE'; // 最初はタイトル画面（説明画面）から始まる
 
+let isPaused = false; // 一時停止の状態を管理する変数
+
+// 画面下の「START / STOP」ボタンを押した時の処理
+document.getElementById('btn-start').addEventListener('click', (e) => {
+  // ゲームプレイ中（PLAYING）の時だけ一時停止が効くようにする
+  if (STATE === 'PLAYING') {
+    isPaused = !isPaused; // 押すたびに停止と再開を切り替える
+    
+    // ボタンの文字を切り替える
+    e.target.innerText = isPaused ? 'RESUME' : 'START / STOP';
+  } else if (STATE === 'GAMEOVER' || STATE === 'START') {
+    // ゲームオーバーや開始前なら、通常通りリセットして開始
+    resetGame();
+  }
+});
+
+ 
  // STARTボタンを押した時の処理
 document.getElementById('start-button').addEventListener('click', () => {
     // 説明画面を非表示にする
