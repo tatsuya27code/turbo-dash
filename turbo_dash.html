@@ -14,21 +14,19 @@
   }
   #game-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; }
   
-  /* 説明画面レイヤー：重なり順を1000にして確実にボタンを押せるように */
+  /* UIレイヤー：重なりを最前面に固定 */
   #ui-layer {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     display: flex; justify-content: center; align-items: center;
-    background: rgba(0, 0, 0, 0.7); z-index: 1000;
+    background: rgba(0, 0, 0, 0.7); z-index: 2000;
   }
   #start-screen {
     text-align: center; color: #00ffc8; border: 1px solid #00ffc8;
-    padding: 30px; background: #0a0a15; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 255, 200, 0.2);
-    max-width: 320px;
+    padding: 30px; background: #0a0a15; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 255, 200, 0.3);
   }
   #start-button {
     background: #00ffc8; color: #000; border: none; padding: 12px 30px;
     font-family: 'Orbitron'; font-weight: 900; cursor: pointer; margin-top: 20px; border-radius: 4px;
-    box-shadow: 0 0 15px rgba(0, 255, 200, 0.5);
   }
 
   #gameCanvas { display: block; border: 1px solid rgba(0,255,200,0.25); image-rendering: pixelated; }
@@ -36,21 +34,20 @@
   .btn {
     flex: 1; background: rgba(0,255,200,0.07); border: 1px solid rgba(0,255,200,0.3);
     color: #00ffc8; font-family: 'Orbitron'; font-size: 20px; padding: 15px 0; border-radius: 6px;
-    cursor: pointer; text-align: center;
   }
-  #btn-start { color: #ff3c64; border-color: rgba(255,60,100,0.4); font-size: 12px; letter-spacing: 1px; }
+  #btn-start { color: #ff3c64; border-color: rgba(255,60,100,0.4); font-size: 12px; }
 </style>
 </head>
 <body>
 
 <div id="ui-layer">
     <div id="start-screen">
-        <h1 style="margin-bottom:15px; font-family:'Orbitron'; font-size: 28px;">TURBO DASH</h1>
+        <h1 style="margin-bottom:15px; font-family:'Orbitron';">TURBO DASH</h1>
         <div style="text-align:left; font-size:14px; line-height:1.6;">
-            <p style="color:#ffaa00; border-bottom:1px solid #ffaa00; margin-bottom: 5px;">CONTROLS</p>
+            <p style="color:#ffaa00; border-bottom:1px solid #ffaa00;">CONTROLS</p>
             <p>◀ ▶ : MOVE / SPACE : BOOST</p>
-            <p style="color:#ffaa00; border-bottom:1px solid #ffaa00; margin-top:15px; margin-bottom: 5px;">INFO</p>
-            <p>ライフは5つ。赤いボタンで一時停止。<br>「不のデータ」を収集し改善せよ。</p>
+            <p style="color:#ffaa00; border-bottom:1px solid #ffaa00; margin-top:10px;">INFO</p>
+            <p>ライフは5つ。赤いボタンで一時停止。</p>
         </div>
         <button id="start-button">START ENGINE</button>
     </div>
@@ -66,7 +63,7 @@
 </div>
 
 <script>
-// --- 元のリッチな描画設定とパーティクルを完全復元 ---
+// --- から全ての描画エンジンを復元 ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const LW = 400, LH = 600;
@@ -87,15 +84,11 @@ function resize() {
 }
 window.addEventListener('resize', resize); resize();
 
-// 描画補助：角丸四角形
-function rr(x,y,w,h,r) {
-  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
-  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
-  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.fill();
-}
+// 描画パーツの復元
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.fill();}
 
 function initPlayer() {
-  player = { x: LW/2, y: 500, w: 36, h: 60, tx: LW/2, inv: false, invT: 0, trail: [] };
+  player = { x: LW/2, y: 490, w: 36, h: 60, tx: LW/2, inv: false, invT: 0, trail: [] };
 }
 
 function resetGame() {
@@ -106,7 +99,7 @@ function resetGame() {
   document.getElementById('btn-start').innerText = 'START / STOP';
 }
 
-// --- 操作系 ---
+// 操作
 document.getElementById('start-button').onclick = () => {
   document.getElementById('ui-layer').style.display = 'none';
   resetGame();
@@ -127,19 +120,18 @@ function update() {
 
   frame++;
   score += 0.1;
-  gameSpeed = Math.min(12, 4 + frame / 600);
+  gameSpeed = Math.min(12, 4 + frame / 800);
   roadOff = (roadOff + gameSpeed) % 60;
-  
   player.x += (player.tx - player.x) * 0.15;
   
-  if (frame % 90 === 0) {
-    const laneX = 85 + Math.floor(Math.random()*3)*115;
-    enemies.push({ x: laneX, y: -100, spd: gameSpeed + 1, col: '#ff3c64' });
+  if (frame % 80 === 0) {
+    const lx = 85 + Math.floor(Math.random()*3)*115;
+    enemies.push({ x: lx, y: -100, spd: gameSpeed + 1, col: '#ff3c64' });
   }
 
   enemies.forEach(e => {
     e.y += e.spd;
-    if (!player.inv && Math.abs(player.x - e.x) < 28 && Math.abs(player.y - e.y) < 50) {
+    if (!player.inv && Math.abs(player.x - e.x) < 30 && Math.abs(player.y - e.y) < 50) {
       lives--; player.inv = true; player.invT = 120;
       if (lives <= 0) { STATE = 'GAMEOVER'; if(score > bestScore) bestScore = score; }
     }
@@ -148,21 +140,15 @@ function update() {
   enemies = enemies.filter(e => e.y < LH + 100);
 }
 
-// --- 元のリッチな描画系 ---
+// --- リッチなビジュアル描画関数の完全復元 ---
 function draw() {
-  // 背景
+  // 背景とサイバー道路
   ctx.fillStyle = '#060610'; ctx.fillRect(0,0,LW,LH);
-  
-  // 道路と白線
   ctx.fillStyle = '#10101a'; ctx.fillRect(60,0,280,LH);
   ctx.strokeStyle = 'rgba(0, 255, 200, 0.15)';
   ctx.setLineDash([20, 40]);
   ctx.lineDashOffset = -roadOff;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(153, 0); ctx.lineTo(153, LH);
-  ctx.moveTo(247, 0); ctx.lineTo(247, LH);
-  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(153, 0); ctx.lineTo(153, LH); ctx.moveTo(247, 0); ctx.lineTo(247, LH); ctx.stroke();
   ctx.setLineDash([]);
 
   // HUD
@@ -172,25 +158,24 @@ function draw() {
   ctx.textAlign = 'right';
   for (let i = 0; i < 5; i++) {
     ctx.fillStyle = i < lives ? '#ff3364' : '#2a2a35';
-    ctx.shadowBlur = i < lives ? 15 : 0;
-    ctx.shadowColor = '#ff3364';
+    ctx.shadowBlur = i < lives ? 15 : 0; ctx.shadowColor = '#ff3364';
     ctx.fillText('♥', LW - 20 - i * 25, 35);
     ctx.shadowBlur = 0;
   }
 
   if (STATE === 'PLAYING' || STATE === 'GAMEOVER') {
-    // Player (ネオンブルーの光彩)
+    // Player
     if (!(player.inv && Math.floor(frame/5)%2)) {
       ctx.shadowBlur = 20; ctx.shadowColor = '#00ccff';
-      ctx.fillStyle = '#00ccff';
-      rr(player.x-18, player.y-30, 36, 60, 8);
+      ctx.fillStyle = '#00ccff'; rr(player.x-18, player.y-30, 36, 60, 8);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fillRect(player.x-12, player.y-25, 24, 15); // ガラス
       ctx.shadowBlur = 0;
     }
-    // Enemies (ネオンレッドの光彩)
+    // Enemies
     enemies.forEach(e => {
       ctx.shadowBlur = 15; ctx.shadowColor = e.col;
-      ctx.fillStyle = e.col;
-      rr(e.x-17, e.y-29, 34, 58, 8);
+      ctx.fillStyle = e.col; rr(e.x-17, e.y-29, 34, 58, 8);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(e.x-12, e.y-24, 24, 12);
       ctx.shadowBlur = 0;
     });
   }
@@ -199,4 +184,19 @@ function draw() {
     ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0,0,LW,LH);
     ctx.fillStyle = '#ff3364'; ctx.textAlign = 'center'; ctx.font = 'bold 36px Orbitron';
     ctx.fillText('GAME OVER', LW/2, LH/2);
-    ctx.font = '14px Orbitron';
+    ctx.font = '14px Orbitron'; ctx.fillStyle = '#ffaa00';
+    ctx.fillText('PRESS START TO RETRY', LW/2, LH/2 + 50);
+  }
+}
+
+function loop() {
+  update(); draw(); requestAnimationFrame(loop);
+}
+
+document.getElementById('btn-left').onclick = () => { player.tx = Math.max(85, player.tx - 115); };
+document.getElementById('btn-right').onclick = () => { player.tx = Math.min(315, player.tx + 115); };
+
+initPlayer(); loop();
+</script>
+</body>
+</html>
