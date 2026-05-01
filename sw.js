@@ -1,3 +1,13 @@
+// 冒頭に追加
+let gameState = 'TITLE'; 
+
+// ボタンクリックでゲーム開始
+document.getElementById('start-button').addEventListener('click', () => {
+    document.getElementById('ui-layer').style.display = 'none';
+    gameState = 'PLAYING';
+    // ここでゲームの初期化関数（あれば）を呼ぶ
+});
+
 const CACHE_NAME = 'turbo-dash-v1';
 const ASSETS = [
   'turbo_dash.html',
